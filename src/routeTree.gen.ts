@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TransferRouteImport } from './routes/transfer'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -24,6 +25,11 @@ const TransferRoute = TransferRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/transfer': typeof TransferRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/transfer': typeof TransferRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/transfer': typeof TransferRoute
 }
@@ -79,16 +88,25 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/history'
     | '/login'
+    | '/settings'
     | '/signup'
     | '/transfer'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/history' | '/login' | '/signup' | '/transfer'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/history'
+    | '/login'
+    | '/settings'
+    | '/signup'
+    | '/transfer'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/history'
     | '/login'
+    | '/settings'
     | '/signup'
     | '/transfer'
   fileRoutesById: FileRoutesById
@@ -98,6 +116,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   HistoryRoute: typeof HistoryRoute
   LoginRoute: typeof LoginRoute
+  SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   TransferRoute: typeof TransferRoute
 }
@@ -116,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -154,9 +180,19 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   HistoryRoute: HistoryRoute,
   LoginRoute: LoginRoute,
+  SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   TransferRoute: TransferRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
