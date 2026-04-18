@@ -68,6 +68,23 @@ function Dashboard() {
         </h1>
       </div>
 
+      {profile && !profile.pin_code_hashed && (
+        <Link
+          to="/settings"
+          className="flex items-start gap-3 rounded-2xl border border-warning/40 bg-warning/10 p-4 text-sm transition-colors hover:bg-warning/15"
+        >
+          <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-warning text-warning-foreground text-xs font-bold">
+            !
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">Définissez votre code PIN</p>
+            <p className="text-muted-foreground">
+              Indispensable avant tout transfert. Cliquez pour le configurer →
+            </p>
+          </div>
+        </Link>
+      )}
+
       {/* Solde card */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-card p-6 shadow-elevated md:p-8">
         <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
