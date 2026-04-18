@@ -36,12 +36,10 @@ function SignupPage() {
       return;
     }
     setSubmitting(true);
-    const redirectUrl = `${window.location.origin}/dashboard`;
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
         data: { full_name: fullName },
       },
     });
@@ -55,8 +53,8 @@ function SignupPage() {
       }
       return;
     }
-    toast.success("Compte créé ! Crédit de démo : 10 000.");
-    router.navigate({ to: "/dashboard" });
+    toast.success("Code de confirmation envoyé à votre email !");
+    router.navigate({ to: "/verify-otp", search: { email } });
   };
 
   return (
