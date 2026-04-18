@@ -89,9 +89,7 @@ function TransferPage() {
     if (!recipient) return;
 
     setSubmitting(true);
-    // Placeholder: real RPC will be implemented in Prompt 3.
-    // For now we call a function that doesn't exist yet — wire it up here.
-    const { data, error } = await (supabase.rpc as any)("execute_transfer", {
+    const { data, error } = await supabase.rpc("execute_transfer", {
       _receiver_handle: recipient.handle,
       _amount: amt,
       _pin: pin,
@@ -100,14 +98,20 @@ function TransferPage() {
 
     if (error) {
       const msg = error.message || "";
-      if (msg.includes("PIN")) toast.error("Code PIN incorrect.");
-      else if (msg.includes("insufficient")) toast.error("Solde insuffisant.");
-      else if (msg.includes("not found")) toast.error("Utilisateur inconnu.");
-      else toast.error("La fonction de transfert n'est pas encore activée (Prompt 3).");
+      if (msg.includes("invalid_pin")) toast.error("Code PIN incorrect.");
+      else if (msg.includes("pin_not_set"))
+        toast.error("Définissez d'abord votre code PIN dans Paramètres.");
+      else if (msg.includes("insufficient_balance")) toast.error("Solde insuffisant.");
+      else if (msg.includes("receiver_not_found")) toast.error("Utilisateur inconnu.");
+      else if (msg.includes("self_transfer_forbidden"))
+        toast.error("Vous ne pouvez pas vous envoyer de l'argent à vous-même.");
+      else if (msg.includes("invalid_amount")) toast.error("Montant invalide.");
+      else toast.error(msg || "Erreur lors du transfert.");
       return;
     }
 
-    setReceipt((data as any)?.receipt_code ?? "—");
+    const result = data as { receipt_code?: string } | null;
+    setReceipt(result?.receipt_code ?? "—");
     await refreshProfile();
     setStep("success");
   };
