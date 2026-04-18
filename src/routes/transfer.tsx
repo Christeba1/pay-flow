@@ -1,13 +1,14 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { Loader2, Search, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Loader2, Search, ArrowRight, CheckCircle2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthGate, formatMoney } from "@/components/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { generateReceiptPdf } from "@/lib/receipt";
 
 export const Route = createFileRoute("/transfer")({
   head: () => ({
@@ -110,10 +111,25 @@ function TransferPage() {
       return;
     }
 
-    const result = data as { receipt_code?: string } | null;
+    const result = data as { receipt_code?: string; transaction_id?: string } | null;
     setReceipt(result?.receipt_code ?? "—");
     await refreshProfile();
     setStep("success");
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!recipient || !profile || !receipt) return;
+    generateReceiptPdf({
+      receipt_code: receipt,
+      created_at: new Date().toISOString(),
+      amount: amt,
+      fee,
+      status: "success",
+      sender_handle: profile.handle,
+      sender_name: profile.full_name,
+      receiver_handle: recipient.handle,
+      receiver_name: recipient.full_name,
+    });
   };
 
   return (
@@ -266,6 +282,14 @@ function TransferPage() {
             </p>
             <p className="mt-1 break-all font-mono text-xs">{receipt}</p>
           </div>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={handleDownloadReceipt}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Télécharger le reçu PDF
+          </Button>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -282,6 +306,7 @@ function TransferPage() {
                 setAmount("");
                 setPin("");
                 setRecipient(null);
+                setReceipt("");
               }}
             >
               Nouveau transfert
