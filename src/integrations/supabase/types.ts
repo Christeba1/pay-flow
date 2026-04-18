@@ -124,6 +124,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      execute_transfer: {
+        Args: { _amount: number; _pin: string; _receiver_handle: string }
+        Returns: Json
+      }
       generate_unique_handle: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -131,6 +135,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      set_pin_code: {
+        Args: { _current_pin?: string; _new_pin: string }
+        Returns: Json
       }
     }
     Enums: {
