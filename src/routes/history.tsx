@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, Filter } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Download, FileText, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthGate, formatMoney, formatDate } from "@/components/auth-gate";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { exportTransactionsCsv, generateReceiptPdf } from "@/lib/receipt";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -39,11 +41,13 @@ type Tx = {
   receipt_code: string;
 };
 
+type ProfileLite = { id: string; handle: string; full_name: string | null };
 type FilterType = "all" | "sent" | "received";
 
 function HistoryPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [txs, setTxs] = useState<Tx[]>([]);
+  const [counterparties, setCounterparties] = useState<Record<string, ProfileLite>>({});
   const [loading, setLoading] = useState(true);
   const [type, setType] = useState<FilterType>("all");
   const [from, setFrom] = useState("");
@@ -51,15 +55,33 @@ function HistoryPage() {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("transactions")
-      .select("*")
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setTxs((data ?? []) as Tx[]);
-        setLoading(false);
+    (async () => {
+      const { data } = await supabase
+        .from("transactions")
+        .select("*")
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order("created_at", { ascending: false });
+      const rows = (data ?? []) as Tx[];
+      setTxs(rows);
+
+      // Load counterparty profiles
+      const ids = new Set<string>();
+      rows.forEach((t) => {
+        ids.add(t.sender_id === user.id ? t.receiver_id : t.sender_id);
       });
+      if (ids.size > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id,handle,full_name")
+          .in("id", Array.from(ids));
+        const map: Record<string, ProfileLite> = {};
+        (profs ?? []).forEach((p) => {
+          map[p.id] = p as ProfileLite;
+        });
+        setCounterparties(map);
+      }
+      setLoading(false);
+    })();
   }, [user]);
 
   const filtered = useMemo(() => {
@@ -82,14 +104,60 @@ function HistoryPage() {
     .filter((t) => t.sender_id === user?.id && t.status === "success")
     .reduce((s, t) => s + Number(t.amount) + Number(t.fee), 0);
 
+  const handleExportCsv = () => {
+    if (!user) return;
+    const rows = filtered.map((tx) => {
+      const isOut = tx.sender_id === user.id;
+      const cp = counterparties[isOut ? tx.receiver_id : tx.sender_id];
+      return {
+        created_at: tx.created_at,
+        direction: isOut ? ("out" as const) : ("in" as const),
+        counterparty: cp ? `${cp.full_name ?? ""} (@${cp.handle})` : "—",
+        amount: Number(tx.amount),
+        fee: Number(tx.fee),
+        status: tx.status,
+        receipt_code: tx.receipt_code,
+      };
+    });
+    exportTransactionsCsv(rows);
+  };
+
+  const handleDownloadReceipt = (tx: Tx) => {
+    if (!user || !profile) return;
+    const isOut = tx.sender_id === user.id;
+    const cp = counterparties[isOut ? tx.receiver_id : tx.sender_id];
+    generateReceiptPdf({
+      receipt_code: tx.receipt_code,
+      created_at: tx.created_at,
+      amount: Number(tx.amount),
+      fee: Number(tx.fee),
+      status: tx.status,
+      sender_handle: isOut ? profile.handle : cp?.handle ?? "?",
+      sender_name: isOut ? profile.full_name : cp?.full_name ?? null,
+      receiver_handle: isOut ? cp?.handle ?? "?" : profile.handle,
+      receiver_name: isOut ? cp?.full_name ?? null : profile.full_name,
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold md:text-3xl">Historique</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {filtered.length} opération{filtered.length > 1 ? "s" : ""} affichée
-          {filtered.length > 1 ? "s" : ""}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold md:text-3xl">Historique</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {filtered.length} opération{filtered.length > 1 ? "s" : ""} affichée
+            {filtered.length > 1 ? "s" : ""}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportCsv}
+          disabled={filtered.length === 0}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter CSV
+        </Button>
       </div>
 
       {/* Stats */}
@@ -140,15 +208,19 @@ function HistoryPage() {
         ) : (
           <ul className="divide-y divide-border">
             {filtered.map((tx) => (
-              <Row key={tx.id} tx={tx} userId={user!.id} />
+              <Row
+                key={tx.id}
+                tx={tx}
+                userId={user!.id}
+                counterparty={
+                  counterparties[tx.sender_id === user!.id ? tx.receiver_id : tx.sender_id]
+                }
+                onDownload={() => handleDownloadReceipt(tx)}
+              />
             ))}
           </ul>
         )}
       </div>
-
-      <p className="text-center text-xs text-muted-foreground">
-        L'export CSV sera disponible après le Prompt 4.
-      </p>
     </div>
   );
 }
@@ -176,11 +248,21 @@ function StatCard({
   );
 }
 
-function Row({ tx, userId }: { tx: Tx; userId: string }) {
+function Row({
+  tx,
+  userId,
+  counterparty,
+  onDownload,
+}: {
+  tx: Tx;
+  userId: string;
+  counterparty?: ProfileLite;
+  onDownload: () => void;
+}) {
   const isOut = tx.sender_id === userId;
   const failed = tx.status === "failed";
   return (
-    <li className="flex items-center justify-between px-4 py-3">
+    <li className="flex items-center justify-between gap-3 px-4 py-3">
       <div className="flex min-w-0 items-center gap-3">
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
@@ -191,7 +273,8 @@ function Row({ tx, userId }: { tx: Tx; userId: string }) {
         </div>
         <div className="min-w-0">
           <p className="text-sm font-medium">
-            {isOut ? "Envoi" : "Réception"}
+            {isOut ? "Envoi à " : "Réception de "}
+            <span className="font-mono text-xs">@{counterparty?.handle ?? "?"}</span>
             {failed && <span className="ml-2 text-xs text-destructive">échoué</span>}
           </p>
           <p className="text-xs text-muted-foreground">{formatDate(tx.created_at)}</p>
@@ -200,17 +283,30 @@ function Row({ tx, userId }: { tx: Tx; userId: string }) {
           </p>
         </div>
       </div>
-      <div className="text-right">
-        <p
-          className={`font-mono text-sm font-semibold ${
-            isOut ? "text-foreground" : "text-success"
-          }`}
-        >
-          {isOut ? "−" : "+"}
-          {formatMoney(tx.amount)}
-        </p>
-        {isOut && tx.fee > 0 && (
-          <p className="text-[10px] text-muted-foreground">frais {formatMoney(tx.fee)}</p>
+      <div className="flex items-center gap-2">
+        <div className="text-right">
+          <p
+            className={`font-mono text-sm font-semibold ${
+              isOut ? "text-foreground" : "text-success"
+            }`}
+          >
+            {isOut ? "−" : "+"}
+            {formatMoney(tx.amount)}
+          </p>
+          {isOut && tx.fee > 0 && (
+            <p className="text-[10px] text-muted-foreground">frais {formatMoney(tx.fee)}</p>
+          )}
+        </div>
+        {!failed && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 shrink-0"
+            onClick={onDownload}
+            title="Télécharger le reçu PDF"
+          >
+            <FileText className="h-4 w-4" />
+          </Button>
         )}
       </div>
     </li>
