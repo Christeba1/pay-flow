@@ -3,10 +3,10 @@ import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signUpAndSendOtp } from "@/lib/otp.functions";
 import { AuthLayout } from "./login";
 
 export const Route = createFileRoute("/signup")({
@@ -37,7 +37,20 @@ function SignupPage() {
     }
     setSubmitting(true);
     try {
-      await signUpAndSendOtp({ data: { email, password, fullName } });
+      // OTP natif Supabase : envoie un code 6 chiffres par email (gratuit, illimité)
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          data: { full_name: fullName, pending_password: password },
+        },
+      });
+      if (error) throw error;
+
+      // Stocker temporairement le mot de passe pour pouvoir le définir après vérification
+      sessionStorage.setItem(`pwd:${email}`, password);
+      sessionStorage.setItem(`name:${email}`, fullName);
+
       toast.success("Code de confirmation envoyé à votre email !");
       router.navigate({ to: "/verify-otp", search: { email } });
     } catch (err) {
