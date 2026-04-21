@@ -5,10 +5,8 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { AuthLayout } from "./login";
-import { verifyOtpCode, resendOtp } from "@/lib/otp.functions";
 
 type Search = { email?: string };
 
@@ -29,7 +27,6 @@ function VerifyOtpPage() {
   const router = useRouter();
   const { email } = useSearch({ from: "/verify-otp" });
   const [code, setCode] = useState("");
-  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
 
@@ -55,21 +52,25 @@ function VerifyOtpPage() {
       toast.error("Saisissez le code à 6 chiffres.");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Saisissez votre mot de passe.");
-      return;
-    }
     setSubmitting(true);
     try {
-      // 1. Vérifier le code OTP (confirme le user côté Supabase)
-      await verifyOtpCode({ data: { email, code } });
-
-      // 2. Connecter l'utilisateur avec son mot de passe
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
+      const { error: vErr } = await supabase.auth.verifyOtp({
         email,
-        password,
+        token: code,
+        type: "email",
       });
-      if (signInErr) throw new Error(signInErr.message);
+      if (vErr) throw new Error(vErr.message);
+
+      const password = sessionStorage.getItem(`pwd:${email}`);
+      const fullName = sessionStorage.getItem(`name:${email}`);
+      if (password) {
+        await supabase.auth.updateUser({
+          password,
+          data: fullName ? { full_name: fullName } : undefined,
+        });
+        sessionStorage.removeItem(`pwd:${email}`);
+        sessionStorage.removeItem(`name:${email}`);
+      }
 
       toast.success("Email confirmé ! Bienvenue.");
       router.navigate({ to: "/dashboard" });
@@ -84,7 +85,11 @@ function VerifyOtpPage() {
   const handleResend = async () => {
     setResending(true);
     try {
-      await resendOtp({ data: { email } });
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+      if (error) throw error;
       toast.success("Nouveau code envoyé !");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur lors du renvoi.";
@@ -124,17 +129,6 @@ function VerifyOtpPage() {
               </InputOTPGroup>
             </InputOTP>
           </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">Confirmez votre mot de passe</Label>
-          <Input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Le mot de passe choisi à l'inscription"
-          />
         </div>
         <Button
           type="submit"
