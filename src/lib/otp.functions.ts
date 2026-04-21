@@ -6,7 +6,9 @@ const RESEND_FROM = "PayLink <onboarding@resend.dev>";
 
 async function sendOtpEmail(email: string, code: string, fullName: string) {
   const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY non configurée");
+  if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY non configurée");
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#ffffff">
@@ -23,39 +25,12 @@ async function sendOtpEmail(email: string, code: string, fullName: string) {
     </div>
   `;
 
-  // Using Lovable AI Gateway → Resend connector OR direct Resend
-  // Try direct Resend via gateway-less call using a public test domain
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-
-  if (RESEND_API_KEY) {
-    // Direct Resend call (if connector configured)
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: RESEND_FROM,
-        to: [email],
-        subject: `Votre code PayLink : ${code}`,
-        html,
-      }),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Resend API error [${res.status}]: ${errText}`);
-    }
-    return;
-  }
-
-  // Fallback: use Lovable connector gateway for Resend
   const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "X-Connection-Api-Key": process.env.RESEND_API_KEY || "",
+      "X-Connection-Api-Key": RESEND_API_KEY,
     },
     body: JSON.stringify({
       from: RESEND_FROM,
@@ -67,7 +42,7 @@ async function sendOtpEmail(email: string, code: string, fullName: string) {
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Resend gateway error [${res.status}]: ${errText}`);
+    throw new Error(`Erreur envoi email [${res.status}]: ${errText}`);
   }
 }
 
