@@ -1,13 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { Loader2, KeyRound, ShieldCheck } from "lucide-react";
+import { Loader2, KeyRound, ShieldCheck, Trash2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthGate } from "@/components/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { deleteAccount } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -24,13 +36,17 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const { profile, refreshProfile } = useAuth();
+  const router = useRouter();
+  const { profile, refreshProfile, signOut } = useAuth();
   const hasPin = !!profile?.pin_code_hashed;
 
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -65,11 +81,26 @@ function SettingsPage() {
     await refreshProfile();
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      toast.success("Compte supprimé.");
+      await signOut();
+      router.navigate({ to: "/" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur lors de la suppression.";
+      toast.error(msg);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold md:text-3xl">Paramètres</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Sécurité & code PIN.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Sécurité, code PIN & compte.</p>
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
@@ -148,6 +179,64 @@ function SettingsPage() {
           Votre code PIN est haché avec <strong className="font-semibold text-foreground">bcrypt</strong>{" "}
           (pgcrypto). Même les administrateurs ne peuvent pas le voir.
         </p>
+      </div>
+
+      {/* === ZONE DANGER : Suppression du compte === */}
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
+        <div className="mb-4 flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold text-destructive">Zone de danger</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              La suppression de votre compte est <strong className="font-semibold">définitive</strong>.
+              Profil, transactions et solde seront effacés.
+            </p>
+          </div>
+        </div>
+
+        <AlertDialog onOpenChange={(o) => !o && setConfirmText("")}>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" className="w-full" size="lg">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Supprimer mon compte
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer définitivement votre compte ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est <strong>irréversible</strong>. Toutes vos données (profil, solde de{" "}
+                {profile?.balance?.toLocaleString("fr-FR") ?? 0}, historique des transactions) seront
+                supprimées.
+                <br />
+                <br />
+                Tapez <strong className="font-mono">SUPPRIMER</strong> pour confirmer :
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="SUPPRIMER"
+              className="font-mono"
+            />
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDelete();
+                }}
+                disabled={confirmText !== "SUPPRIMER" || deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Supprimer définitivement
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
