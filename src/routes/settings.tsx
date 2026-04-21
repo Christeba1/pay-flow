@@ -37,7 +37,7 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const router = useRouter();
-  const { profile, refreshProfile, signOut } = useAuth();
+  const { profile, refreshProfile, signOut, session } = useAuth();
   const hasPin = !!profile?.pin_code_hashed;
 
   const [currentPin, setCurrentPin] = useState("");
@@ -82,9 +82,13 @@ function SettingsPage() {
   };
 
   const handleDelete = async () => {
+    if (!session?.access_token) {
+      toast.error("Session expirée. Reconnectez-vous.");
+      return;
+    }
     setDeleting(true);
     try {
-      await deleteAccount();
+      await deleteAccount({ data: { accessToken: session.access_token } });
       toast.success("Compte supprimé.");
       await signOut();
       router.navigate({ to: "/" });
