@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      otp_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          used: boolean
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          used?: boolean
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           balance: number
@@ -124,6 +154,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_otp_code: {
+        Args: { _email: string; _plain_code: string }
+        Returns: undefined
+      }
       execute_transfer: {
         Args: { _amount: number; _pin: string; _receiver_handle: string }
         Returns: Json
@@ -139,6 +173,10 @@ export type Database = {
       set_pin_code: {
         Args: { _current_pin?: string; _new_pin: string }
         Returns: Json
+      }
+      verify_otp_code: {
+        Args: { _email: string; _plain_code: string }
+        Returns: boolean
       }
     }
     Enums: {
