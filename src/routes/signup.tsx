@@ -2,11 +2,11 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signUpAndSendOtp } from "@/lib/otp.functions";
 import { AuthLayout } from "./login";
 
 export const Route = createFileRoute("/signup")({
@@ -36,25 +36,16 @@ function SignupPage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-      },
-    });
-    setSubmitting(false);
-
-    if (error) {
-      if (error.message.includes("already registered")) {
-        toast.error("Un compte existe déjà avec cet email.");
-      } else {
-        toast.error(error.message);
-      }
-      return;
+    try {
+      await signUpAndSendOtp({ data: { email, password, fullName } });
+      toast.success("Code de confirmation envoyé à votre email !");
+      router.navigate({ to: "/verify-otp", search: { email } });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur lors de l'inscription.";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
     }
-    toast.success("Code de confirmation envoyé à votre email !");
-    router.navigate({ to: "/verify-otp", search: { email } });
   };
 
   return (
