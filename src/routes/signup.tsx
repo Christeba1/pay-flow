@@ -1,13 +1,13 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, User, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout } from "./login";
+import { sendOtp } from "@/lib/otp.functions";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -37,22 +37,14 @@ function SignupPage() {
     }
     setSubmitting(true);
     try {
-      // OTP natif Supabase : envoie un code 6 chiffres par email (gratuit, illimité)
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-          data: { full_name: fullName, pending_password: password },
-        },
-      });
-      if (error) throw error;
+      const cleanEmail = email.toLowerCase().trim();
+      // Stocker pour l'étape de vérification
+      sessionStorage.setItem(`pwd:${cleanEmail}`, password);
+      sessionStorage.setItem(`name:${cleanEmail}`, fullName);
 
-      // Stocker temporairement le mot de passe pour pouvoir le définir après vérification
-      sessionStorage.setItem(`pwd:${email}`, password);
-      sessionStorage.setItem(`name:${email}`, fullName);
-
-      toast.success("Code de confirmation envoyé à votre email !");
-      router.navigate({ to: "/verify-otp", search: { email } });
+      await sendOtp({ data: { email: cleanEmail } });
+      toast.success("Code envoyé à votre email !");
+      router.navigate({ to: "/verify-otp", search: { email: cleanEmail } });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur lors de l'inscription.";
       toast.error(msg);
@@ -64,7 +56,7 @@ function SignupPage() {
   return (
     <AuthLayout
       title="Créer votre compte"
-      subtitle="Recevez 10 000 de crédit de démo pour tester les transferts."
+      subtitle="Recevez 10 000 de crédit démo pour tester les transferts."
       footer={
         <>
           Déjà un compte ?{" "}
@@ -77,36 +69,48 @@ function SignupPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="fullName">Nom complet</Label>
-          <Input
-            id="fullName"
-            required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Aïcha Diallo"
-          />
+          <div className="relative">
+            <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="fullName"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Aïcha Diallo"
+              className="pl-10"
+            />
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="vous@exemple.com"
-          />
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="vous@exemple.com"
+              className="pl-10"
+            />
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">Mot de passe</Label>
-          <Input
-            id="password"
-            type="password"
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Au moins 6 caractères"
-          />
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="password"
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Au moins 6 caractères"
+              className="pl-10"
+            />
+          </div>
         </div>
         <Button type="submit" className="w-full shadow-glow" size="lg" disabled={submitting}>
           {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

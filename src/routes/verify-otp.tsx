@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { AuthLayout } from "./login";
+import { sendOtp, verifyOtp } from "@/lib/otp.functions";
 
 type Search = { email?: string };
 
@@ -54,25 +55,31 @@ function VerifyOtpPage() {
     }
     setSubmitting(true);
     try {
-      const { error: vErr } = await supabase.auth.verifyOtp({
-        email,
-        token: code,
-        type: "email",
-      });
-      if (vErr) throw new Error(vErr.message);
+      // 1) Vérifier le code via notre serveur
+      await verifyOtp({ data: { email, code } });
 
-      const password = sessionStorage.getItem(`pwd:${email}`);
-      const fullName = sessionStorage.getItem(`name:${email}`);
-      if (password) {
-        await supabase.auth.updateUser({
-          password,
-          data: fullName ? { full_name: fullName } : undefined,
-        });
-        sessionStorage.removeItem(`pwd:${email}`);
-        sessionStorage.removeItem(`name:${email}`);
+      // 2) Créer le compte Supabase (auto-confirmé côté projet)
+      const password = sessionStorage.getItem(`pwd:${email}`) ?? "";
+      const fullName = sessionStorage.getItem(`name:${email}`) ?? "";
+      if (!password) throw new Error("Session expirée. Recommencez l'inscription.");
+
+      const { error: signErr } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } },
+      });
+      if (signErr && !signErr.message.toLowerCase().includes("already")) {
+        throw new Error(signErr.message);
       }
 
-      toast.success("Email confirmé ! Bienvenue.");
+      // 3) Connexion immédiate
+      const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginErr) throw new Error(loginErr.message);
+
+      sessionStorage.removeItem(`pwd:${email}`);
+      sessionStorage.removeItem(`name:${email}`);
+
+      toast.success("Bienvenue sur PayLink !");
       router.navigate({ to: "/dashboard" });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Code invalide.";
@@ -85,11 +92,7 @@ function VerifyOtpPage() {
   const handleResend = async () => {
     setResending(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false },
-      });
-      if (error) throw error;
+      await sendOtp({ data: { email } });
       toast.success("Nouveau code envoyé !");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur lors du renvoi.";
