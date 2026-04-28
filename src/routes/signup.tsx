@@ -38,11 +38,9 @@ function SignupPage() {
     setSubmitting(true);
     try {
       const cleanEmail = email.toLowerCase().trim();
-      // Stocker pour l'étape de vérification
-      sessionStorage.setItem(`pwd:${cleanEmail}`, password);
-      sessionStorage.setItem(`name:${cleanEmail}`, fullName);
-
       await sendOtp({ data: { email: cleanEmail } });
+      sessionStorage.setItem(`pwd:${cleanEmail}`, password);
+      sessionStorage.setItem(`name:${cleanEmail}`, fullName.trim());
       toast.success("Code envoyé à votre email !");
       router.navigate({ to: "/verify-otp", search: { email: cleanEmail } });
     } catch (err) {
