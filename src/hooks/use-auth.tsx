@@ -45,11 +45,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up listener FIRST
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, sess) => {
+      // Si le refresh token est invalide, nettoyer la session
+      if (event === "TOKEN_REFRESHED" && !sess) {
+        supabase.auth.signOut().catch(() => {});
+        return;
+      }
       setSession(sess);
       setUser(sess?.user ?? null);
       if (sess?.user) {
-        // Defer Supabase calls to avoid deadlocks
         setTimeout(() => loadProfileAndRole(sess.user.id), 0);
       } else {
         setProfile(null);
@@ -57,16 +61,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Then check existing session
-    supabase.auth.getSession().then(({ data: { session: sess } }) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      if (sess?.user) {
-        loadProfileAndRole(sess.user.id).finally(() => setLoading(false));
-      } else {
+    // Then check existing session — catch token refresh errors
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: sess }, error }) => {
+        if (error) {
+          // Refresh token invalide / corrompu → on purge
+          supabase.auth.signOut().catch(() => {});
+          setLoading(false);
+          return;
+        }
+        setSession(sess);
+        setUser(sess?.user ?? null);
+        if (sess?.user) {
+          loadProfileAndRole(sess.user.id).finally(() => setLoading(false));
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        // Erreur réseau ou token cassé → purger pour éviter la boucle
+        supabase.auth.signOut().catch(() => {});
         setLoading(false);
-      }
-    });
+      });
 
     return () => sub.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
