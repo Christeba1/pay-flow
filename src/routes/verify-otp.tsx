@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { AuthLayout } from "./login";
-import { sendOtp, verifyOtp } from "@/lib/otp.functions";
+import { completeSignupWithOtp, sendOtp } from "@/lib/otp.functions";
 
 type Search = { email?: string };
 
@@ -55,24 +55,11 @@ function VerifyOtpPage() {
     }
     setSubmitting(true);
     try {
-      // 1) Vérifier le code via notre serveur
-      await verifyOtp({ data: { email, code } });
-
-      // 2) Créer le compte Supabase (auto-confirmé côté projet)
       const password = sessionStorage.getItem(`pwd:${email}`) ?? "";
       const fullName = sessionStorage.getItem(`name:${email}`) ?? "";
       if (!password) throw new Error("Session expirée. Recommencez l'inscription.");
 
-      const { error: signErr } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } },
-      });
-      if (signErr && !signErr.message.toLowerCase().includes("already")) {
-        throw new Error(signErr.message);
-      }
-
-      // 3) Connexion immédiate
+      await completeSignupWithOtp({ data: { email, code, password, fullName } });
       const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password });
       if (loginErr) throw new Error(loginErr.message);
 
