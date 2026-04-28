@@ -4,6 +4,7 @@ import { createHash, randomInt } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const hashCode = (code: string) => createHash("sha256").update(code).digest("hex");
+const RESEND_GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 
 const SendSchema = z.object({ email: z.string().email() });
 const VerifySchema = z.object({
@@ -12,8 +13,10 @@ const VerifySchema = z.object({
 });
 
 async function sendEmailViaResend(to: string, code: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY non configurée");
+  const lovableApiKey = process.env.LOVABLE_API_KEY;
+  if (!lovableApiKey) throw new Error("Service email non configuré.");
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (!resendApiKey) throw new Error("Service email non configuré.");
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px"><tr><td align="center">
@@ -33,9 +36,13 @@ async function sendEmailViaResend(to: string, code: string) {
 <p style="margin:24px 0 0 0;color:#94a3b8;font-size:12px">PayLink — Transferts simples & sécurisés</p>
 </td></tr></table></body></html>`;
 
-  const res = await fetch("https://api.resend.com/emails", {
+  const res = await fetch(`${RESEND_GATEWAY_URL}/emails`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${lovableApiKey}`,
+      "X-Connection-Api-Key": resendApiKey,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       from: "PayLink <onboarding@resend.dev>",
       to: [to],
@@ -45,7 +52,7 @@ async function sendEmailViaResend(to: string, code: string) {
   });
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`Resend error ${res.status}: ${txt}`);
+    throw new Error(`Email delivery failed [${res.status}]: ${txt}`);
   }
 }
 
@@ -56,16 +63,34 @@ export const sendOtp = createServerFn({ method: "POST" })
     const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
+    const { data: existingProfile, error: existingError } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+    if (existingError) throw new Error("Impossible de vérifier cet email pour le moment.");
+    if (existingProfile) {
+      throw new Error("Un compte existe déjà avec cet email. Connectez-vous plutôt.");
+    }
+
     // Invalider les anciens codes
     await supabaseAdmin.from("otp_codes").update({ used: true }).eq("email", email).eq("used", false);
-    const { error } = await supabaseAdmin.from("otp_codes").insert({
+    const { data: insertedOtp, error } = await supabaseAdmin.from("otp_codes").insert({
       email,
       code_hash: hashCode(code),
       expires_at: expiresAt,
-    });
+    }).select("id").single();
     if (error) throw new Error(error.message);
 
-    await sendEmailViaResend(email, code);
+    try {
+      await sendEmailViaResend(email, code);
+    } catch (error) {
+      if (insertedOtp?.id) {
+        await supabaseAdmin.from("otp_codes").update({ used: true }).eq("id", insertedOtp.id);
+      }
+      console.error("OTP email send failed", error);
+      throw new Error("L'email OTP n'a pas pu être envoyé. Réessayez dans quelques instants.");
+    }
     return { ok: true };
   });
 
