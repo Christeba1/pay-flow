@@ -67,7 +67,8 @@ async function assertEmailAvailable(email: string) {
     .eq("email", email)
     .maybeSingle();
   if (existingError) throw new Error("Impossible de vérifier cet email pour le moment.");
-  if (existingProfile) throw new Error("Un compte existe déjà avec cet email. Connectez-vous plutôt.");
+  if (existingProfile)
+    throw new Error("Un compte existe déjà avec cet email. Connectez-vous plutôt.");
 }
 
 async function verifyOtpCodeOrThrow(email: string, code: string) {
@@ -85,7 +86,10 @@ async function verifyOtpCodeOrThrow(email: string, code: string) {
   if (row.attempts >= 5) throw new Error("Trop de tentatives. Renvoyez un nouveau code.");
 
   if (row.code_hash !== hashCode(code)) {
-    await supabaseAdmin.from("otp_codes").update({ attempts: row.attempts + 1 }).eq("id", row.id);
+    await supabaseAdmin
+      .from("otp_codes")
+      .update({ attempts: row.attempts + 1 })
+      .eq("id", row.id);
     throw new Error("Code incorrect.");
   }
 
@@ -102,12 +106,20 @@ export const sendOtp = createServerFn({ method: "POST" })
     await assertEmailAvailable(email);
 
     // Invalider les anciens codes
-    await supabaseAdmin.from("otp_codes").update({ used: true }).eq("email", email).eq("used", false);
-    const { data: insertedOtp, error } = await supabaseAdmin.from("otp_codes").insert({
-      email,
-      code_hash: hashCode(code),
-      expires_at: expiresAt,
-    }).select("id").single();
+    await supabaseAdmin
+      .from("otp_codes")
+      .update({ used: true })
+      .eq("email", email)
+      .eq("used", false);
+    const { data: insertedOtp, error } = await supabaseAdmin
+      .from("otp_codes")
+      .insert({
+        email,
+        code_hash: hashCode(code),
+        expires_at: expiresAt,
+      })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
 
     try {
@@ -156,8 +168,10 @@ export const completeSignupWithOtp = createServerFn({ method: "POST" })
 
     const userId = authData.user.id;
     try {
-      const { data: handle, error: handleError } = await supabaseAdmin.rpc("generate_unique_handle");
-      if (handleError || !handle) throw new Error("Impossible de générer l'identifiant utilisateur.");
+      const { data: handle, error: handleError } =
+        await supabaseAdmin.rpc("generate_unique_handle");
+      if (handleError || !handle)
+        throw new Error("Impossible de générer l'identifiant utilisateur.");
 
       const { count } = await supabaseAdmin
         .from("profiles")
@@ -183,7 +197,10 @@ export const completeSignupWithOtp = createServerFn({ method: "POST" })
     } catch (error) {
       await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {});
       const msg = error instanceof Error ? error.message : "Impossible de finaliser le compte.";
-      if (msg.toLowerCase().includes("duplicate") || msg.includes("profiles_email_unique_lower_idx")) {
+      if (
+        msg.toLowerCase().includes("duplicate") ||
+        msg.includes("profiles_email_unique_lower_idx")
+      ) {
         throw new Error("Un compte existe déjà avec cet email. Connectez-vous plutôt.");
       }
       throw new Error(msg);
