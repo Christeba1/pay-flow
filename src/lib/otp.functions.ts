@@ -166,36 +166,11 @@ export const completeSignupWithOtp = createServerFn({ method: "POST" })
       throw new Error(authError?.message ?? "Impossible de créer le compte.");
     }
 
-    const userId = authData.user.id;
     try {
-      const { data: handle, error: handleError } =
-        await supabaseAdmin.rpc("generate_unique_handle");
-      if (handleError || !handle)
-        throw new Error("Impossible de générer l'identifiant utilisateur.");
-
-      const { count } = await supabaseAdmin
-        .from("profiles")
-        .select("id", { count: "exact", head: true });
-
-      const { error: profileError } = await supabaseAdmin.from("profiles").insert({
-        id: userId,
-        email,
-        full_name: fullName,
-        handle,
-        balance: 10000,
-      });
-      if (profileError) throw profileError;
-
-      const { error: roleError } = await supabaseAdmin.from("user_roles").insert({
-        user_id: userId,
-        role: count === 0 ? "admin" : "user",
-      });
-      if (roleError) throw roleError;
-
       await supabaseAdmin.from("otp_codes").update({ used: true }).eq("id", otpId);
       return { ok: true };
     } catch (error) {
-      await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {});
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id).catch(() => {});
       const msg = error instanceof Error ? error.message : "Impossible de finaliser le compte.";
       if (
         msg.toLowerCase().includes("duplicate") ||
