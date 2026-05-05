@@ -30,6 +30,9 @@ function VerifyOtpPage() {
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
+  const [demoCode, setDemoCode] = useState<string | null>(() =>
+    email ? sessionStorage.getItem(`demo:${email}`) : null,
+  );
 
   if (!email) {
     return (
