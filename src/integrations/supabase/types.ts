@@ -85,8 +85,8 @@ export type Database = {
           fee: number
           id: string
           receipt_code: string
-          receiver_id: string
-          sender_id: string
+          receiver_id: string | null
+          sender_id: string | null
           status: Database["public"]["Enums"]["transaction_status"]
         }
         Insert: {
@@ -96,8 +96,8 @@ export type Database = {
           fee?: number
           id?: string
           receipt_code?: string
-          receiver_id: string
-          sender_id: string
+          receiver_id?: string | null
+          sender_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
         }
         Update: {
@@ -107,8 +107,8 @@ export type Database = {
           fee?: number
           id?: string
           receipt_code?: string
-          receiver_id?: string
-          sender_id?: string
+          receiver_id?: string | null
+          sender_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
         }
         Relationships: [
