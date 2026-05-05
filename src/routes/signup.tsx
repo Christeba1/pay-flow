@@ -38,10 +38,13 @@ function SignupPage() {
     setSubmitting(true);
     try {
       const cleanEmail = email.toLowerCase().trim();
-      await sendOtp({ data: { email: cleanEmail } });
+      const res = await sendOtp({ data: { email: cleanEmail } });
       sessionStorage.setItem(`pwd:${cleanEmail}`, password);
       sessionStorage.setItem(`name:${cleanEmail}`, fullName.trim());
-      toast.success("Code envoyé à votre email !");
+      if (res?.demoCode) {
+        sessionStorage.setItem(`demo:${cleanEmail}`, res.demoCode);
+      }
+      toast.success("Code généré ! Affiché à l'écran suivant.");
       router.navigate({ to: "/verify-otp", search: { email: cleanEmail } });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur lors de l'inscription.";
