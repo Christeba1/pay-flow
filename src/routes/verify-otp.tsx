@@ -113,6 +113,23 @@ function VerifyOtpPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {demoCode && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+              Mode démo — votre code
+            </p>
+            <p className="mt-2 font-mono text-3xl font-bold tracking-widest text-primary">
+              {demoCode}
+            </p>
+            <button
+              type="button"
+              onClick={() => setCode(demoCode)}
+              className="mt-2 text-xs font-medium text-primary hover:underline"
+            >
+              Utiliser ce code
+            </button>
+          </div>
+        )}
         <div className="space-y-2">
           <Label htmlFor="otp">Code de confirmation</Label>
           <div className="flex justify-center">
