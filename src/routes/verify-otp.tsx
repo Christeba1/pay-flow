@@ -68,6 +68,7 @@ function VerifyOtpPage() {
 
       sessionStorage.removeItem(`pwd:${email}`);
       sessionStorage.removeItem(`name:${email}`);
+      sessionStorage.removeItem(`demo:${email}`);
 
       toast.success("Bienvenue sur PayLink !");
       router.navigate({ to: "/dashboard" });
@@ -82,8 +83,12 @@ function VerifyOtpPage() {
   const handleResend = async () => {
     setResending(true);
     try {
-      await sendOtp({ data: { email } });
-      toast.success("Nouveau code envoyé !");
+      const res = await sendOtp({ data: { email } });
+      if (res?.demoCode) {
+        sessionStorage.setItem(`demo:${email}`, res.demoCode);
+        setDemoCode(res.demoCode);
+      }
+      toast.success("Nouveau code généré !");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur lors du renvoi.";
       toast.error(msg);
@@ -95,7 +100,7 @@ function VerifyOtpPage() {
   return (
     <AuthLayout
       title="Vérifiez votre email"
-      subtitle={`Nous avons envoyé un code à 6 chiffres à ${email}.`}
+      subtitle={`Saisissez le code à 6 chiffres pour ${email}.`}
       footer={
         <button
           type="button"
