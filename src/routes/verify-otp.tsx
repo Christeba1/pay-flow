@@ -30,6 +30,9 @@ function VerifyOtpPage() {
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
+  const [demoCode, setDemoCode] = useState<string | null>(() =>
+    email ? sessionStorage.getItem(`demo:${email}`) : null,
+  );
 
   if (!email) {
     return (
@@ -65,6 +68,7 @@ function VerifyOtpPage() {
 
       sessionStorage.removeItem(`pwd:${email}`);
       sessionStorage.removeItem(`name:${email}`);
+      sessionStorage.removeItem(`demo:${email}`);
 
       toast.success("Bienvenue sur PayLink !");
       router.navigate({ to: "/dashboard" });
@@ -79,8 +83,12 @@ function VerifyOtpPage() {
   const handleResend = async () => {
     setResending(true);
     try {
-      await sendOtp({ data: { email } });
-      toast.success("Nouveau code envoyé !");
+      const res = await sendOtp({ data: { email } });
+      if (res?.demoCode) {
+        sessionStorage.setItem(`demo:${email}`, res.demoCode);
+        setDemoCode(res.demoCode);
+      }
+      toast.success("Nouveau code généré !");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur lors du renvoi.";
       toast.error(msg);
@@ -92,7 +100,7 @@ function VerifyOtpPage() {
   return (
     <AuthLayout
       title="Vérifiez votre email"
-      subtitle={`Nous avons envoyé un code à 6 chiffres à ${email}.`}
+      subtitle={`Saisissez le code à 6 chiffres pour ${email}.`}
       footer={
         <button
           type="button"
@@ -105,6 +113,23 @@ function VerifyOtpPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {demoCode && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+              Mode démo — votre code
+            </p>
+            <p className="mt-2 font-mono text-3xl font-bold tracking-widest text-primary">
+              {demoCode}
+            </p>
+            <button
+              type="button"
+              onClick={() => setCode(demoCode)}
+              className="mt-2 text-xs font-medium text-primary hover:underline"
+            >
+              Utiliser ce code
+            </button>
+          </div>
+        )}
         <div className="space-y-2">
           <Label htmlFor="otp">Code de confirmation</Label>
           <div className="flex justify-center">

@@ -122,16 +122,14 @@ export const sendOtp = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
+    // Mode démo : on tente d'envoyer l'email mais on retourne TOUJOURS le code
+    // pour que l'utilisateur puisse continuer même si l'envoi échoue.
     try {
       await sendEmailViaResend(email, code);
     } catch (error) {
-      if (insertedOtp?.id) {
-        await supabaseAdmin.from("otp_codes").update({ used: true }).eq("id", insertedOtp.id);
-      }
-      console.error("OTP email send failed", error);
-      throw new Error("L'email OTP n'a pas pu être envoyé. Réessayez dans quelques instants.");
+      console.warn("OTP email send failed (mode démo, code retourné à l'écran)", error);
     }
-    return { ok: true };
+    return { ok: true, demoCode: code };
   });
 
 export const verifyOtp = createServerFn({ method: "POST" })
