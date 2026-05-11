@@ -47,7 +47,7 @@ export function AppHeader() {
         <MobileNav to="/transfer" icon={<Send className="h-5 w-5" />} label="Envoyer" />
         <MobileNav to="/history" icon={<History className="h-5 w-5" />} label="Historique" />
         <MobileNav to="/settings" icon={<Settings className="h-5 w-5" />} label="Paramètres" />
-        {isAdmin && <MobileNav to="/admin" icon={<Shield className="h-5 w-5" />} label="Audit" />}
+        
       </nav>
     </header>
   );
