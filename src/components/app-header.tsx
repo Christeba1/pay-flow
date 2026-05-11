@@ -27,9 +27,6 @@ export function AppHeader() {
           <NavItem to="/transfer" icon={<Send className="h-4 w-4" />} label="Transférer" />
           <NavItem to="/history" icon={<History className="h-4 w-4" />} label="Historique" />
           <NavItem to="/settings" icon={<Settings className="h-4 w-4" />} label="Paramètres" />
-          {isAdmin && (
-            <NavItem to="/admin" icon={<Shield className="h-4 w-4" />} label="Audit" />
-          )}
         </nav>
 
         <div className="flex items-center gap-3">
