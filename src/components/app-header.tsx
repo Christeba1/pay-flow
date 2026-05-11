@@ -1,10 +1,10 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { LogOut, LayoutDashboard, Send, History, Shield, Settings } from "lucide-react";
+import { LogOut, LayoutDashboard, Send, History, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
 export function AppHeader() {
-  const { profile, isAdmin, signOut } = useAuth();
+  const { profile, signOut } = useAuth();
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -27,9 +27,6 @@ export function AppHeader() {
           <NavItem to="/transfer" icon={<Send className="h-4 w-4" />} label="Transférer" />
           <NavItem to="/history" icon={<History className="h-4 w-4" />} label="Historique" />
           <NavItem to="/settings" icon={<Settings className="h-4 w-4" />} label="Paramètres" />
-          {isAdmin && (
-            <NavItem to="/admin" icon={<Shield className="h-4 w-4" />} label="Audit" />
-          )}
         </nav>
 
         <div className="flex items-center gap-3">
@@ -50,7 +47,7 @@ export function AppHeader() {
         <MobileNav to="/transfer" icon={<Send className="h-5 w-5" />} label="Envoyer" />
         <MobileNav to="/history" icon={<History className="h-5 w-5" />} label="Historique" />
         <MobileNav to="/settings" icon={<Settings className="h-5 w-5" />} label="Paramètres" />
-        {isAdmin && <MobileNav to="/admin" icon={<Shield className="h-5 w-5" />} label="Audit" />}
+        
       </nav>
     </header>
   );
