@@ -82,8 +82,8 @@ function AdminOtpPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2">
-            <Link to="/admin">
-              <ArrowLeft className="mr-1 h-4 w-4" /> Retour audit
+            <Link to="/dashboard">
+              <ArrowLeft className="mr-1 h-4 w-4" /> Retour
             </Link>
           </Button>
           <h1 className="font-display text-2xl font-bold md:text-3xl">Debug OTP</h1>
