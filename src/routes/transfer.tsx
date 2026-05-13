@@ -213,16 +213,16 @@ function TransferPage() {
           onSubmit={handleConfirm}
           className="space-y-5 rounded-2xl border border-border bg-card p-6 shadow-card"
         >
-          <div className="rounded-xl bg-gradient-card p-5 text-primary-foreground">
-            <p className="text-xs uppercase tracking-wider opacity-70">Vous envoyez</p>
-            <p className="mt-1 font-display text-3xl font-bold">{formatMoney(amt)} XOF</p>
-            <div className="mt-3 flex items-center gap-2 rounded-lg bg-white/10 p-3 text-sm backdrop-blur">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 font-semibold">
+          <div className="rounded-xl border border-white/10 bg-gradient-card p-5 text-foreground">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">Vous envoyez</p>
+            <p className="mt-1 font-display text-3xl font-light tracking-tight">{formatMoney(amt)} XOF</p>
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 p-3 text-sm backdrop-blur">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 font-semibold">
                 {recipient.full_name?.[0]?.toUpperCase() ?? "?"}
               </div>
               <div>
                 <p className="font-medium">{recipient.full_name || "Sans nom"}</p>
-                <p className="font-mono text-xs opacity-70">@{recipient.handle}</p>
+                <p className="font-mono text-xs text-muted-foreground">@{recipient.handle}</p>
               </div>
             </div>
           </div>

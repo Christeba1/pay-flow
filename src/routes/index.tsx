@@ -73,23 +73,26 @@ function LandingPage() {
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-4 rounded-3xl bg-gradient-primary opacity-20 blur-3xl" />
-            <div className="relative rounded-3xl bg-gradient-card p-8 shadow-elevated">
-              <p className="text-xs font-medium uppercase tracking-wider text-primary-foreground/70">
-                Solde disponible
-              </p>
-              <p className="mt-2 font-display text-4xl font-bold text-primary-foreground">
-                10 000.00 <span className="text-2xl text-primary-foreground/70">XOF</span>
-              </p>
-              <div className="mt-6 flex items-center justify-between rounded-2xl bg-white/10 p-4 backdrop-blur">
-                <div>
-                  <p className="text-xs text-primary-foreground/70">Identifiant</p>
-                  <p className="font-mono text-sm font-semibold text-primary-foreground">
-                    @USR-DEMO01
-                  </p>
-                </div>
-                <div className="rounded-full bg-success/20 px-3 py-1">
-                  <span className="text-xs font-medium text-primary-foreground">Actif</span>
+            <div className="absolute -inset-4 rounded-3xl bg-white/10 opacity-40 blur-3xl" />
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-card p-8 shadow-elevated">
+              <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/5 blur-3xl" />
+              <div className="relative">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                  Premium Reserve
+                </p>
+                <p className="mt-3 font-display text-4xl font-light tracking-tight text-foreground">
+                  10 000.00 <span className="text-2xl font-extralight text-muted-foreground">XOF</span>
+                </p>
+                <div className="mt-6 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Identifiant</p>
+                    <p className="font-mono text-sm font-semibold text-foreground">
+                      @USR-DEMO01
+                    </p>
+                  </div>
+                  <div className="rounded-full border border-success/30 bg-success/10 px-3 py-1">
+                    <span className="text-[11px] font-medium text-success">Actif</span>
+                  </div>
                 </div>
               </div>
             </div>

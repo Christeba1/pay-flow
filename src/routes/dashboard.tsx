@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthGate, formatMoney, formatDate } from "@/components/auth-gate";
-import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -60,10 +60,12 @@ function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-6">
       <div>
-        <p className="text-sm text-muted-foreground">Bonjour 👋</p>
-        <h1 className="font-display text-2xl font-bold md:text-3xl">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+          Welcome back
+        </p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
           {profile?.full_name || "Utilisateur"}
         </h1>
       </div>
@@ -85,47 +87,67 @@ function Dashboard() {
         </Link>
       )}
 
-      {/* Solde card */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-card p-6 shadow-elevated md:p-8">
-        <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-primary-foreground/70">
-              Solde disponible
-            </p>
+      {/* Luxury balance card */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-card p-6 shadow-elevated md:p-8">
+        <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.06),transparent_55%)]" />
+        <div className="relative flex flex-col gap-8">
+          <div className="flex items-start justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              Premium Reserve
+            </span>
             <button
               onClick={() => setShowBalance((v) => !v)}
-              className="text-primary-foreground/70 transition-colors hover:text-primary-foreground"
+              className="text-foreground/60 transition-colors hover:text-foreground"
+              aria-label="Afficher / masquer le solde"
             >
               {showBalance ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </button>
           </div>
-          <p className="mt-2 font-display text-4xl font-bold text-primary-foreground md:text-5xl">
-            {showBalance ? formatMoney(profile?.balance ?? 0) : "••••••"}
-            <span className="ml-2 text-xl font-normal text-primary-foreground/70">XOF</span>
-          </p>
 
-          <button
-            onClick={copyHandle}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-medium text-primary-foreground backdrop-blur transition-colors hover:bg-white/25"
-          >
-            <span className="font-mono">@{profile?.handle}</span>
-            <Copy className="h-3 w-3" />
-          </button>
+          <div>
+            <p className="text-xs text-muted-foreground">Solde disponible</p>
+            <p className="mt-1 font-display text-4xl font-light tracking-tight text-foreground md:text-5xl">
+              {showBalance ? formatMoney(profile?.balance ?? 0) : "••••••"}
+              <span className="ml-2 text-xl font-extralight text-muted-foreground">XOF</span>
+            </p>
+          </div>
+
+          <div className="flex items-end justify-between">
+            <button
+              onClick={copyHandle}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-medium text-foreground/90 backdrop-blur transition-colors hover:bg-white/10"
+            >
+              <span className="font-mono">@{profile?.handle}</span>
+              <Copy className="h-3 w-3" />
+            </button>
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              PayLink Platinum
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button asChild size="lg" className="h-auto py-4 shadow-glow">
-          <Link to="/transfer">
-            <Send className="mr-2 h-4 w-4" />
-            Envoyer
-          </Link>
-        </Button>
-        <Button asChild variant="outline" size="lg" className="h-auto py-4">
-          <Link to="/history">Historique complet</Link>
-        </Button>
+      <div className="grid grid-cols-3 gap-3">
+        <Link to="/transfer" className="flex flex-col items-center gap-2">
+          <div className="flex aspect-square w-full items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-card transition-transform active:scale-95">
+            <Send className="h-5 w-5" />
+          </div>
+          <span className="text-[11px] font-medium text-muted-foreground">Envoyer</span>
+        </Link>
+        <Link to="/history" className="flex flex-col items-center gap-2">
+          <div className="flex aspect-square w-full items-center justify-center rounded-2xl border border-border bg-card text-foreground transition-transform active:scale-95">
+            <ArrowDownLeft className="h-5 w-5" />
+          </div>
+          <span className="text-[11px] font-medium text-muted-foreground">Historique</span>
+        </Link>
+        <Link to="/settings" className="flex flex-col items-center gap-2">
+          <div className="flex aspect-square w-full items-center justify-center rounded-2xl border border-border bg-card text-foreground transition-transform active:scale-95">
+            <ArrowUpRight className="h-5 w-5" />
+          </div>
+          <span className="text-[11px] font-medium text-muted-foreground">Compte</span>
+        </Link>
       </div>
 
       {/* Recent transactions */}
