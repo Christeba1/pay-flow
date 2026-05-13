@@ -100,10 +100,26 @@ export const sendOtp = createServerFn({ method: "POST" })
   .inputValidator((d) => SendSchema.parse(d))
   .handler(async ({ data }) => {
     const email = data.email.toLowerCase().trim();
+
+    // Vérification non-throw : on retourne un statut clair au client
+    const { data: existingProfile, error: existingError } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+    if (existingError) {
+      return { ok: false as const, error: "Impossible de vérifier cet email pour le moment." };
+    }
+    if (existingProfile) {
+      return {
+        ok: false as const,
+        error: "Un compte existe déjà avec cet email. Connectez-vous plutôt.",
+        code: "email_exists" as const,
+      };
+    }
+
     const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-
-    await assertEmailAvailable(email);
 
     // Invalider les anciens codes
     await supabaseAdmin
@@ -111,7 +127,7 @@ export const sendOtp = createServerFn({ method: "POST" })
       .update({ used: true })
       .eq("email", email)
       .eq("used", false);
-    const { data: insertedOtp, error } = await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from("otp_codes")
       .insert({
         email,
@@ -120,16 +136,15 @@ export const sendOtp = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) return { ok: false as const, error: error.message };
 
     // Mode démo : on tente d'envoyer l'email mais on retourne TOUJOURS le code
-    // pour que l'utilisateur puisse continuer même si l'envoi échoue.
     try {
       await sendEmailViaResend(email, code);
     } catch (error) {
       console.warn("OTP email send failed (mode démo, code retourné à l'écran)", error);
     }
-    return { ok: true, demoCode: code };
+    return { ok: true as const, demoCode: code };
   });
 
 export const verifyOtp = createServerFn({ method: "POST" })
