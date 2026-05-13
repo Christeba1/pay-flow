@@ -98,7 +98,7 @@
   --sidebar-ring: oklch(0.85 0.005 250);
 
   /* Brushed-silver & midnight gradients */
-  --gradient-primary: linear-gradient(135deg, oklch(0.98 0 0) 0%, oklch(0.72 0.005 250) 100%);
+  --gradient-primary: linear-gradient(135deg, oklch(0.98 0 0) 0%, oklch(0.55 0.005 250) 50%, oklch(0.98 0 0) 100%);
   --gradient-hero: linear-gradient(135deg, oklch(0.08 0.005 250) 0%, oklch(0.18 0.005 250) 50%, oklch(0.05 0 0) 100%);
   --gradient-card: linear-gradient(135deg, oklch(0.24 0.008 250) 0%, oklch(0.16 0.005 250) 55%, oklch(0.06 0 0) 100%);
   --gradient-success: linear-gradient(135deg, oklch(0.7 0.16 160) 0%, oklch(0.85 0.18 155) 100%);
