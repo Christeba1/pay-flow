@@ -39,9 +39,16 @@ function SignupPage() {
     try {
       const cleanEmail = email.toLowerCase().trim();
       const res = await sendOtp({ data: { email: cleanEmail } });
+      if (!res.ok) {
+        toast.error(res.error);
+        if (res.code === "email_exists") {
+          router.navigate({ to: "/login" });
+        }
+        return;
+      }
       sessionStorage.setItem(`pwd:${cleanEmail}`, password);
       sessionStorage.setItem(`name:${cleanEmail}`, fullName.trim());
-      if (res?.demoCode) {
+      if (res.demoCode) {
         sessionStorage.setItem(`demo:${cleanEmail}`, res.demoCode);
       }
       toast.success("Code généré ! Affiché à l'écran suivant.");
