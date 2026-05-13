@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthGate, formatMoney, formatDate } from "@/components/auth-gate";
-import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
